@@ -25,7 +25,10 @@
   },
   "homepage": "https://github.com/Frranz/csgo-tradeup-analyzer#readme",
   "dependencies": {
-    "node-fetch": "^2.6.0"
+    "express": "^4.17.1",
+    "fs": "0.0.1-security",
+    "node-fetch": "^2.6.0",
+    "node-html-parser": "^1.1.16"
   },
   "devDependencies": {
     "eslint": "^6.8.0",
