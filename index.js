@@ -11,6 +11,8 @@ const mongodb = new MongoClient('mongodb://localhost:27017', {
   useUnifiedTopology: true,
 });
 
+const DROP_TABLES_FIRST = false;
+
 mongodb.connect(async (err) => {
   if (err) throw Error('error when connecting to db');
   console.log('connected to mongodb');
@@ -20,12 +22,34 @@ mongodb.connect(async (err) => {
 
 async function main() {
   try {
-  
+
+    const weaponsTable = mongodb.db('csgo').collection('weapons');
+    if (DROP_TABLES_FIRST) {
+      mongodb.db('csgo').dropCollection('weapons', (err,delOk) => {
+        if (err){ 
+          console.error('couldnt drop weapons table');
+          console.error(err)
+        } else {
+          console.log('dropped weapons table');
+        }
+      });
+    }
+    
     await steamMarket.updateCollections();
     
     console.log(`getting data for all collections`);
 
-    const hi = await steamMarket.getAllCollectionsMetadata();
+    const allCollections = await steamMarket.getAllCollectionsMetadata();
+
+    const writeThis = Object.entries(allCollections).map(entry => {
+      const el = {};
+      el[entry[0]] = entry[1];
+      return el;
+    });
+
+    const query = await weaponsTable.insertMany(writeThis); 
+
+    console.log(query);
 
     /*const collectionData = await steamMarket.getCollectionMetadata(Object.keys(steamMarket.collections)[0]);
 

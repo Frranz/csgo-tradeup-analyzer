@@ -1,12 +1,13 @@
 const nodeFetch = require('node-fetch');
 
-const TIME_BETWEEN_REQUESTS = 5;
+const TIME_BETWEEN_REQUESTS = 30;
 
 const TIME_FOR_WAIT_INTERVAL = 1;
 
 class DelayedFetch{
     constructor() {
         this.wait = false;
+        this.requestTimeWait = TIME_BETWEEN_REQUESTS;
     }
 
     async queue(url) {
@@ -30,9 +31,15 @@ class DelayedFetch{
         this.wait = true;
         setTimeout(() => {
             this.wait = false;
-        }, TIME_BETWEEN_REQUESTS * 1000);
+        }, this.requestTimeWait * 1000);
         const ret = await nodeFetch(url);
-        return ret;
+        if (ret.status === 429) {
+            this.requestTimeWait *= 1.2;
+            console.log(`increased waiting time to ${Math.round(this.requestTimeWait)} seconds`);
+            await this.queue(url);
+        } else {
+            return ret;
+        }
     }
 }
 

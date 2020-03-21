@@ -86,8 +86,14 @@ class SteamMarketHelper {
 
     for (let index = 0; index < Rarity.length; ++index) {
         console.log(`getting rarity ${Rarity[index]}`);
-        const skins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
-        collection.push(skins);
+        try {
+            const skins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
+            collection.push(skins);
+        } catch(e) {
+            console.error(`failed getWeaponsByCollectionAndByRarit(${collectionName},${index})`);
+            console.error(e);
+            collection.push({});
+        }
     }
 
     return collection;
