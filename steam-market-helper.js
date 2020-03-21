@@ -2,17 +2,55 @@
  * fetches and structures data from steam market web page
  */
 
-const fetch = require('node-fetch');
+/**
+ * Collections Data Structure:
+ *  [
+ *    {
+ *      key: set_community_1,
+ *      name: the phoenix collection,
+ *      items: [
+ *        {
+ *             skin: case-hardened
+ *             weapon: ak47 
+ *             conditions: {
+ *                 factory_new: {
+ *                     price:2.50
+ *                     amount: 2
+ *                 },
+ *                 battle_scared: {
+ *                     price:1,30
+ *                     amount: 2
+ *                 },
+ *                 minimal_wear:{
+ *                     price:1,30
+ *                     amount: 2
+ *                 }, 
+ *        },
+ *      ]
+ *    }
+ * ]
+ */
+
+const DelayedFetch = require('./DelayedFetch');
 const Parser = require('node-html-parser');
 const fs = require('fs');
 
-class SteamMarketHelper {
-  constructor() {
-    this.steamUrl = 'https://steamcommunity.com/market/search?appid=730';
-  }
+const Rarity = require('./cs-weapon-rarity');
 
+const STEAM_CSGO_URL = 'https://steamcommunity.com/market/search?appid=730';
+const STEAM_CSGO_ONLY_DATA_URL = 'https://steamcommunity.com/market/search/render/?query=&start=0&count=10000&search_descriptions=0&sort_column=popular&sort_dir=desc&appid=730&norender=1';
+
+const PARAM_UPGRADABLE_WEAPONS = 'category_730_Weapon%5B%5D=any&category_730_Type%5B%5D=tag_CSGO_Type_Pistol&category_730_Type%5B%5D=tag_CSGO_Type_SMG&category_730_Type%5B%5D=tag_CSGO_Type_Rifle&category_730_Type%5B%5D=tag_CSGO_Type_SniperRifle&category_730_Type%5B%5D=tag_CSGO_Type_Shotgun&category_730_Type%5B%5D=tag_CSGO_Type_Machinegun'; 
+const PARAM_COLLECTION = 'category_730_ItemSet%5B%5D=tag_';
+const PARAM_ONLY_NORMAL_SKINS = 'category_730_Quality%5B%5D=tag_normal';
+const PARAM_WEAR_QUALITY = 'category_730_Exterior%5B%5D=tag_WearCategory';
+const PARAM_RARITY = 'category_730_Rarity%5B%5D=tag_Rarity_';
+
+const delayedFetch = new DelayedFetch();
+
+class SteamMarketHelper {
   async updateCollections() {
-    const marketPageReq = await fetch(this.steamUrl);
+    const marketPageReq = await delayedFetch.queue(STEAM_CSGO_URL);
 
     if (marketPageReq.status !== 200) {
       throw new Error('Could not get Steam Market Page');
@@ -31,37 +69,80 @@ class SteamMarketHelper {
     });
   }
 
+  async getAllCollectionsMetadata() {
+      const collections = {};
+      for (let collection of Object.entries(this.collections)) {
+        console.log(`getting collection ${collection[1]}`);
+        const coll = await this.getCollectionMetadata(collection[0]);
+        collections[collection[1]] = coll;
+      }
+
+      return collections;
+  }
+
   async getCollectionMetadata(collectionName) {
 
-    // all weapons of given collection, without Statrak, field-tested (to minimize data fetch)
-    const url = `${this.steamUrl}&category_730_Exterior%5B%5D=tag_WearCategory2&category_730_ItemSet%5B%5D=tag_${collectionName}&category_730_Quality%5B%5D=tag_normal`;
+    const collection = [];
 
-    const allItemsFetched = false;
-
-    const firstMarketPageReq = await fetch(`${url}#p1_price_asc`);
-    if (firstMarketPageReq.status !== 200) {
-      throw new Error(`Could not get Items from Collection ${collectionName}, got statusCode ${firstMarketPageReq.status}`);
+    for (let index = 0; index < Rarity.length; ++index) {
+        console.log(`getting rarity ${Rarity[index]}`);
+        const skins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
+        collection.push(skins);
     }
 
-    const firstMarketPage = await firstMarketPageReq.text();
-
-    fs.writeFileSync('./tmp/log.txt', firstMarketPage, { flag: 'w+' });
-
-
-    const pageRoot = Parser.parse(firstMarketPage);
-    const resultAmount = parseInt(pageRoot.querySelectorAll('#searchResults_total')[0].text);
-    const pageAmount = Math.ceil(resultAmount / 10);
-
-    console.log(`amount of pages: ${pageAmount}`);
-
-
-    // fetch all items of given collections
-
-    /*
-    while (!allItemsFetched) {
-      const marketPage = await fetch(url);
-    }; */
+    return collection;
   }
+
+  async getWeaponsByCollectionAndByRarity(collectionName,rarity) {
+      const collection = {};
+    const url = `${STEAM_CSGO_ONLY_DATA_URL}&${PARAM_COLLECTION}${collectionName}&${PARAM_UPGRADABLE_WEAPONS}&${PARAM_ONLY_NORMAL_SKINS}&${PARAM_RARITY}${Rarity[rarity]}`;//&${PARAM_WEAR_QUALITY}0`;
+
+    const getCollectionData = await delayedFetch.queue(url);
+    if (getCollectionData.status !== 200) {
+      throw new Error(`Could not get Items from Collection ${collectionName}, got statusCode ${getCollectionData.status}`);
+    }
+
+    const colllectionJson = await getCollectionData.json();
+    
+    colllectionJson.results.forEach((entry) => {
+        const weaponData = this.extractWeaponData(entry.hash_name);
+        
+        const skinKey = `${weaponData.weapon}#${weaponData.skin}`;
+        if(!(skinKey in collection)) {
+            collection[skinKey] = {
+                weapon: weaponData.weapon,
+                skin: weaponData.skin,
+                condition: {},
+            } 
+        }
+
+        collection[skinKey].condition[weaponData.condition] = {
+            price: entry.sale_price_text,
+            amount: entry.sell_listings,
+        }
+    });
+    return collection;
+  }
+
+  /**
+   * MAG-7 | Metallic DDPAT (Factory New) => {
+   *    weapon: 'MAG-7',
+   *    skin:   'Metallic DDPAT',
+   *    condition: 'Factory New'
+   * }
+   * @param {String} text - text from steam market entry
+   */
+    extractWeaponData(text) {
+        const weaponData = {};
+        const indexPipe = text.indexOf(' | ');
+        const indexOpeningBracket = text.indexOf(' (',indexPipe);
+
+        weaponData.weapon = text.substr(0,indexPipe);
+        weaponData.skin = text.substring(indexPipe + 3, indexOpeningBracket);
+        weaponData.condition = text.substring(indexOpeningBracket + 2, text.length -1);
+        
+        return weaponData;
+    }
 }
 
 module.exports = SteamMarketHelper;
