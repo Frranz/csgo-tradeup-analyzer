@@ -17,7 +17,7 @@ const conn = mariadb.createConnection({
 const MongoClient = require('mongodb').MongoClient;
 
 const app = express();
-const PORT = 3000;
+const PORT = 3003;
 
 const steamMarket = new Market();
 const mongodb = new MongoClient('mongodb://localhost:27017', {
