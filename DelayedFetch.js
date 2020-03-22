@@ -1,6 +1,6 @@
 const nodeFetch = require('node-fetch');
 
-const TIME_BETWEEN_REQUESTS = 30;
+const TIME_BETWEEN_REQUESTS = 20;
 
 const TIME_FOR_WAIT_INTERVAL = 1;
 

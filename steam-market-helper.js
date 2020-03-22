@@ -36,6 +36,7 @@ const Parser = require('node-html-parser');
 const fs = require('fs');
 
 const Rarity = require('./cs-weapon-rarity');
+const Condition = require('./cs-weapon-condition');
 
 const STEAM_CSGO_URL = 'https://steamcommunity.com/market/search?appid=730';
 const STEAM_CSGO_ONLY_DATA_URL = 'https://steamcommunity.com/market/search/render/?query=&start=0&count=10000&search_descriptions=0&sort_column=popular&sort_dir=desc&appid=730&norender=1';
@@ -67,14 +68,20 @@ class SteamMarketHelper {
         this.collections[entry[0]] = entry[1].localized_name;
       }
     });
+
+    // shorten for test purposes
+    const collectionsOld = this.collections;
+    this.collections = {};
+    this.collections[Object.keys(collectionsOld)[0]] = Object.values(collectionsOld)[0];    
   }
 
   async getAllCollectionsMetadata() {
-      const collections = {};
+      const collections = [];
       for (let collection of Object.entries(this.collections)) {
         console.log(`getting collection ${collection[1]}`);
         const coll = await this.getCollectionMetadata(collection[0]);
-        collections[collection[1]] = coll;
+        collections.push(...coll);
+        console.log('got collection');
       }
 
       return collections;
@@ -88,7 +95,7 @@ class SteamMarketHelper {
         console.log(`getting rarity ${Rarity[index]}`);
         try {
             const skins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
-            collection.push(skins);
+            collection.push(...skins);
         } catch(e) {
             console.error(`failed getWeaponsByCollectionAndByRarit(${collectionName},${index})`);
             console.error(e);
@@ -110,8 +117,19 @@ class SteamMarketHelper {
 
     const colllectionJson = await getCollectionData.json();
     
-    colllectionJson.results.forEach((entry) => {
-        const weaponData = this.extractWeaponData(entry.hash_name);
+    return colllectionJson.results.map((result) => {
+      const weaponData = this.extractWeaponData(result.hash_name);
+      return {
+        weapon: weaponData.weapon,
+        skin: weaponData.skin,
+        condition: Condition.indexOf(weaponData.condition),
+        price: result.sale_price_text.substr(1),
+        amount: result.sell_listings,
+        rarity: rarity,
+      }
+    });
+
+    /*colllectionJson.results.forEach((entry) => {
         
         const skinKey = `${weaponData.weapon}#${weaponData.skin}`;
         if(!(skinKey in collection)) {
@@ -123,11 +141,11 @@ class SteamMarketHelper {
         }
 
         collection[skinKey].condition[weaponData.condition] = {
-            price: entry.sale_price_text,
+            price: entry.sale_price_text.substr(1),
             amount: entry.sell_listings,
         }
     });
-    return collection;
+    return collection;*/
   }
 
   /**
