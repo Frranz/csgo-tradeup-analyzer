@@ -4,7 +4,7 @@ const Rarity = require('./cs-weapon-rarity');
 const MongoClient = require('mongodb').MongoClient;
 
 const app = express();
-const PORT = 3000;
+const PORT = 3003;
 
 const steamMarket = new Market();
 const mongodb = new MongoClient('mongodb://localhost:27017', {
@@ -42,9 +42,10 @@ async function main() {
     const allCollections = await steamMarket.getAllCollectionsMetadata();
 
     const writeThis = Object.entries(allCollections).map(entry => {
-      const el = {};
-      el[entry[0]] = entry[1];
-      return el;
+      return {
+      	collection:entry[0],
+	skins: entry[1],
+      };
     });
 
     const query = await weaponsTable.insertMany(writeThis); 

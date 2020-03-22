@@ -113,7 +113,7 @@ class SteamMarketHelper {
     colllectionJson.results.forEach((entry) => {
         const weaponData = this.extractWeaponData(entry.hash_name);
         
-        const skinKey = `${weaponData.weapon}#${weaponData.skin}`;
+        const skinKey = `${weaponData.weapon}#${weaponData.skin}`.replace('.','');
         if(!(skinKey in collection)) {
             collection[skinKey] = {
                 weapon: weaponData.weapon,
