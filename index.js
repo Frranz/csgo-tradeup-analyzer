@@ -1,75 +1,22 @@
 const express = require('express');
-
-const Market = require('./steam-market-helper');
-const Rarity = require('./cs-weapon-rarity');
-const Condition = require('./cs-weapon-condition');
-
-const mariadb = require('mariadb');
-
-const conn = mariadb.createConnection({
-  host: '127.0.0.1',
-  port: '3306',
-  user: 'root',
-  password: 'my-secret-pw',
-  database: 'csgo'
-});
-
-const MongoClient = require('mongodb').MongoClient;
+const db = require('./db/database');
+const DbHandler = require('./db/DatabaseHandler');
+const MarketAgent = require('./SteamMarketAgent');
 
 const app = express();
 const PORT = 3003;
 
-const steamMarket = new Market();
-const mongodb = new MongoClient('mongodb://localhost:27017', {
-  useUnifiedTopology: true,
-});
-
-const DROP_TABLES_FIRST = false;
-
-mongodb.connect(async (err) => {
-  if (err) throw Error('error when connecting to db');
-  console.log('connected to mongodb');
-
-  
-});
+const dbHandler = new DbHandler(db);
+const marketAgent = new MarketAgent(dbHandler);
 
 setTimeout(async () => {
   await main();
-}, 5000);
+}, 1);
 
 async function main() {
-    try {
-
-    const weaponsTable = mongodb.db('csgo').collection('weapons');
-    if (DROP_TABLES_FIRST) {
-      mongodb.db('csgo').dropCollection('weapons', (err,delOk) => {
-        if (err){ 
-          console.error('couldnt drop weapons table');
-          console.error(err)
-        } else {
-          console.log('dropped weapons table');
-        }
-      });
-    }
+  try {
     
-    await steamMarket.updateCollections();
-    
-    console.log(`getting data for all collections`);
-
-    const allCollections = await steamMarket.getAllCollectionsMetadata();
-
-    const query = `insert into csgo values ${'(?,?,?,?,?,?),'.repeat(allCollections.length)}`.slice(0,-1);
-    const params = [].concat(...allCollections.map(skin => [
-      skin.skin,
-      skin.weapon,
-      skin.condition,
-      skin.price,
-      skin.amount,
-      skin.rarity,
-    ]));
-
-    const storeData = await conn.query(query, params);
-    console.log('hi');
+    const newCollections = await marketAgent.updateCollections();
   } catch(e) {
     console.error('error when getting data from steam');
     console.error(e);
@@ -79,9 +26,9 @@ async function main() {
 }
 
 app.get('/test', async (req, res) => {
-  await steamMarket.updateCollections();
-  await steamMarket.getCollectionMetadata(Object.keys(steamMarket.collections)[2]);
-  res.send(steamMarket.collections);
+  await marketAgent.updateCollections();
+  await marketAgent.getCollectionMetadata(Object.keys(marketAgent.collections)[2]);
+  res.send(marketAgent.collections);
 });
 
 app.listen(PORT);

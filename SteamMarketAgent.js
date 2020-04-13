@@ -35,8 +35,8 @@ const DelayedFetch = require('./DelayedFetch');
 const Parser = require('node-html-parser');
 const fs = require('fs');
 
-const Rarity = require('./cs-weapon-rarity');
-const Condition = require('./cs-weapon-condition');
+const Rarity = require('./steam-helper/cs-weapon-rarity');
+const Condition = require('./steam-helper/cs-weapon-condition');
 
 const STEAM_CSGO_URL = 'https://steamcommunity.com/market/search?appid=730';
 const STEAM_CSGO_ONLY_DATA_URL = 'https://steamcommunity.com/market/search/render/?query=&start=0&count=10000&search_descriptions=0&sort_column=popular&sort_dir=desc&appid=730&norender=1';
@@ -49,7 +49,12 @@ const PARAM_RARITY = 'category_730_Rarity%5B%5D=tag_Rarity_';
 
 const delayedFetch = new DelayedFetch();
 
-class SteamMarketHelper {
+class SteamMarketAgent {
+
+  constructor(dbHandler) {
+    this.dbHandler = dbHandler;
+  }
+
   async updateCollections() {
     const marketPageReq = await delayedFetch.queue(STEAM_CSGO_URL);
 
@@ -69,10 +74,8 @@ class SteamMarketHelper {
       }
     });
 
-    // shorten for test purposes
-    const collectionsOld = this.collections;
-    this.collections = {};
-    this.collections[Object.keys(collectionsOld)[0]] = Object.values(collectionsOld)[0];    
+    const newCollections = await this.dbHandler.updateCollections(Object.entries(this.collections));
+    console.log(`${newCollections} new collections found`);
   }
 
   async getAllCollectionsMetadata() {
@@ -117,7 +120,7 @@ class SteamMarketHelper {
 
     const colllectionJson = await getCollectionData.json();
     
-    return colllectionJson.results.map((result) => {
+    const someSkins = colllectionJson.results.map((result) => {
       const weaponData = this.extractWeaponData(result.hash_name);
       return {
         weapon: weaponData.weapon,
@@ -169,4 +172,4 @@ class SteamMarketHelper {
     }
 }
 
-module.exports = SteamMarketHelper;
+module.exports = SteamMarketAgent;

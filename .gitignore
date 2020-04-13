@@ -105,3 +105,6 @@ dist
 
 # vscode stuff
 .vscode/
+
+#db credentials
+database.js
