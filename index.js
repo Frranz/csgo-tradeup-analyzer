@@ -17,6 +17,7 @@ async function main() {
   try {
     
     const newCollections = await marketAgent.updateCollections();
+    const leel = await marketAgent.getAllCollectionsMetadata()
   } catch(e) {
     console.error('error when getting data from steam');
     console.error(e);

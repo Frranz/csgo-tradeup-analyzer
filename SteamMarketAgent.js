@@ -97,12 +97,11 @@ class SteamMarketAgent {
     for (let index = 0; index < Rarity.length; ++index) {
         console.log(`getting rarity ${Rarity[index]}`);
         try {
-            const skins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
-            collection.push(...skins);
+            const addedSkins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
+            console.log(`added ${addedSkins} new skins to db`);
         } catch(e) {
             console.error(`failed getWeaponsByCollectionAndByRarit(${collectionName},${index})`);
             console.error(e);
-            collection.push({});
         }
     }
 
@@ -123,6 +122,7 @@ class SteamMarketAgent {
     const someSkins = colllectionJson.results.map((result) => {
       const weaponData = this.extractWeaponData(result.hash_name);
       return {
+        collection: collectionName,
         weapon: weaponData.weapon,
         skin: weaponData.skin,
         condition: Condition.indexOf(weaponData.condition),
@@ -131,6 +131,10 @@ class SteamMarketAgent {
         rarity: rarity,
       }
     });
+
+    await this.dbHandler.saveSkins(someSkins);
+    const addedSkins = await this.dbHandler.saveSkinCoinditions(someSkins);
+    return addedSkins;
 
     /*colllectionJson.results.forEach((entry) => {
         
