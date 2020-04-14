@@ -15,7 +15,7 @@ setTimeout(async () => {
 
 async function main() {
   try {
-    
+    //await marketAgent.test();
     const newCollections = await marketAgent.updateCollections();
     const leel = await marketAgent.getAllCollectionsMetadata()
   } catch(e) {

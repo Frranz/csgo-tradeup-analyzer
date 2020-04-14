@@ -55,6 +55,11 @@ class SteamMarketAgent {
     this.dbHandler = dbHandler;
   }
 
+  async test() {
+    await this.dbHandler.checkedCollectionRarityRecently('set_safehouse', 2);
+    console.log('test finished');
+  }
+
   async updateCollections() {
     const marketPageReq = await delayedFetch.queue(STEAM_CSGO_URL);
 
@@ -80,8 +85,11 @@ class SteamMarketAgent {
 
   async getAllCollectionsMetadata() {
       const collections = [];
+
+      // doable without counter, but would be ugly
+      let counter = 0;
       for (let collection of Object.entries(this.collections)) {
-        console.log(`getting collection ${collection[1]}`);
+        console.log(`getting collection ${collection[1]} (${counter + 1}/${Object.keys(this.collections).length})`);
         const coll = await this.getCollectionMetadata(collection[0]);
         collections.push(...coll);
         console.log('got collection');
@@ -95,7 +103,7 @@ class SteamMarketAgent {
     const collection = [];
 
     for (let index = 0; index < Rarity.length; ++index) {
-        console.log(`getting rarity ${Rarity[index]}`);
+        console.log(`getting rarity ${Rarity[index]} (${index + 1}/${Rarity.length})`);
         try {
             const addedSkins = await this.getWeaponsByCollectionAndByRarity(collectionName, index);
             console.log(`added ${addedSkins} new skins to db`);
@@ -109,7 +117,11 @@ class SteamMarketAgent {
   }
 
   async getWeaponsByCollectionAndByRarity(collectionName,rarity) {
-      const collection = {};
+    if (await this.dbHandler.checkedCollectionRarityRecently(collectionName,rarity)) {
+      console.log('not fetching again, because was checked recently');
+      return 0;
+    }
+    const collection = {};
     const url = `${STEAM_CSGO_ONLY_DATA_URL}&${PARAM_COLLECTION}${collectionName}&${PARAM_UPGRADABLE_WEAPONS}&${PARAM_ONLY_NORMAL_SKINS}&${PARAM_RARITY}${Rarity[rarity]}`;//&${PARAM_WEAR_QUALITY}0`;
 
     const getCollectionData = await delayedFetch.queue(url);

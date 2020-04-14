@@ -1,3 +1,5 @@
+const RECENTLY_IN_DAYS = 7;
+
 class DbHandler{
     constructor(db) {
         this.db = db;
@@ -29,6 +31,10 @@ class DbHandler{
     }
 
     async saveSkins(someSkins){
+        if (someSkins.length === 0) {
+            console.log('keine skins vorhanden');
+            return 0;
+        }
         let conn;
 
         try {
@@ -49,6 +55,7 @@ class DbHandler{
 
     async saveSkinCoinditions(skinConditions){
         if (skinConditions.length === 0) {
+            console.log('keine skin conditions vorhanden');
             return 0;
         }
 
@@ -84,6 +91,53 @@ class DbHandler{
             if(conn) conn.release();
         }
     }
+
+    async checkedCollectionRarityRecently(collectionKey, rarity) {
+        let conn;
+        try {
+            conn = await this.db.getConnection();
+            const req = await conn.query('SELECT skin_conditions.last_checked FROM skin_conditions JOIN skins ON skins.collection_key=? AND skins.id=skin_conditions.skin_id AND skins.rarity=?',[collectionKey,rarity]);
+            if (req.length === 0) {
+                return false;
+            }
+            const diff = dateDiffInDays(new Date(),req[0].last_checked);
+            if (diff > RECENTLY_IN_DAYS) {
+                return false;
+            }
+
+            return true;
+        } catch(e) {
+            console.error(`failed to check collection ${collectionKey} rarity ${rarity} in database`);
+            console.error(e);
+            return false;
+        } finally{
+            if(conn) conn.release();
+        }
+    }
+
+    async blueprint() {
+        let conn;
+        try {
+            conn = await this.db.getConnection();
+            const req = await conn.query();
+            return true;
+        } catch(e) {
+            console.error(`failed to *** in database`);
+            console.error(e);
+            return false;
+        } finally{
+            if(conn) conn.release();
+        }
+    }
+    
+}
+
+function dateDiffInDays(a,b) {
+    // Discard the time and time-zone information.
+    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+
+    return Math.floor((utc2 - utc1) / (1000*60*60*24));
 }
 
 module.exports = DbHandler;
