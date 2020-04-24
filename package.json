@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Frranz/csgo-tradeup-analyzer#readme",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
     "mariadb": "^2.3.1",
