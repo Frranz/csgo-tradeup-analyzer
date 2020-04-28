@@ -175,7 +175,7 @@ class SteamMarketAgent {
         const profit = nextEntry.avg - (currentEntry.min * 10);
         const profitRound = Math.round(profit * 100) / 100;
 
-        profits.push(`collection: ${currentEntry.collection_key} rarity: ${Rarity[currentEntry.rarity]} condition: ${Condition[currentEntry.condition_id]} ~price: ${currentEntry.price} upgrade avg profit: ${profitRound}`);
+        profits.push(`collection: ${currentEntry.collection_key} rarity: ${Rarity[currentEntry.rarity]} condition: ${Condition[currentEntry.condition_id]} ~price: ${currentEntry.min} upgrade avg profit: ${profitRound}`);
       }
 
       return profits;
