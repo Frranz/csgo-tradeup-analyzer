@@ -32,7 +32,7 @@ async function main() {
 
 app.get('/test', async (req, res) => {
   console.log('received request on /test');
-  const profits = await margetAgent.getAllUpgradeProfits().join('\n');
+  const profits = await marketAgent.getAllUpgradeProfits().join('\n');
   res.send(profits);
 });
 
