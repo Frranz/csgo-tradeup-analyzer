@@ -32,8 +32,8 @@ async function main() {
 
 app.get('/test', async (req, res) => {
   console.log('received request on /test');
-  const profits = await marketAgent.getAllUpgradeProfits().join('\n');
-  res.send(profits);
+  const profits = await marketAgent.getAllUpgradeProfits();
+  res.send(profits.join('\n'));
 });
 
 app.listen(PORT);
