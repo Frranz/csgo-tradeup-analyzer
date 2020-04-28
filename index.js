@@ -5,6 +5,7 @@ const MarketAgent = require('./SteamMarketAgent');
 
 const app = express();
 const PORT = 3003;
+const EXEC_MODE='PROD';
 
 const dbHandler = new DbHandler(db);
 const marketAgent = new MarketAgent(dbHandler);
@@ -15,11 +16,14 @@ setTimeout(async () => {
 
 async function main() {
   try {
-    //await marketAgent.test();
-    const newCollections = await marketAgent.updateCollections();
-    const leel = await marketAgent.getAllCollectionsMetadata()
+    if(EXEC_MODE==='PROD') {
+      //const newCollections = await marketAgent.updateCollections();
+      //const leel = await marketAgent.getAllCollectionsMetadata()
+    } else {
+      await marketAgent.test();
+    }
   } catch(e) {
-    console.error('error when getting data from steam');
+    console.error('error in main');
     console.error(e);
   }
 
@@ -27,9 +31,9 @@ async function main() {
 }
 
 app.get('/test', async (req, res) => {
-  await marketAgent.updateCollections();
-  await marketAgent.getCollectionMetadata(Object.keys(marketAgent.collections)[2]);
-  res.send(marketAgent.collections);
+  console.log('received request on /test');
+  const profits = await margetAgent.getAllUpgradeProfits().join('\n');
+  res.send(profits);
 });
 
 app.listen(PORT);
@@ -48,9 +52,9 @@ async function getProfitabilityByCollection() {
         });
       });
     });
-    
+
     collection.skins = collection.skins.map((raritySet,index) => {
-      
+
       // iterate through skins in raritySets
       const blub = Object.entries(raritySet).reduce((acc,cur,ind) => {
         // iterate through condition of skin

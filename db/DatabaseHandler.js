@@ -6,7 +6,7 @@ class DbHandler{
     }
 
     /**
-     * 
+     *
      * @param   {Array} entries - Entries is a two dimensional array. Subarrays have the collection_key as first value and the name as second
      * @returns {Integer}       - Number of entries that were new
      */
@@ -17,7 +17,7 @@ class DbHandler{
 
 
             const query = `INSERT IGNORE INTO collections (\`key\`,\`name\`) VALUES${'(?,?),'.repeat(entries.length).slice(0,-1)}`;
-            
+
             const result = await conn.query(query,entries.flat());
 
             return result.affectedRows;
@@ -79,7 +79,7 @@ class DbHandler{
             });
 
             const query = `INSERT IGNORE INTO skin_conditions (\`skin_id\`,\`condition_id\`,\`price\`,\`amount\`) VALUES${'(?,?,?,?),'.repeat(skinConditions.length).slice(0,-1)}`;
-            
+
             const result = await conn.query(query,skinConditions.map(cond => [cond.skinId,cond.condition,cond.price,cond.amount]).flat());
 
             return result.affectedRows;
@@ -129,7 +129,22 @@ class DbHandler{
             if(conn) conn.release();
         }
     }
-    
+
+    async getAllRawUpgradeData() {
+        let conn;
+        try {
+            conn = await this.db.getConnection();
+            const req = await conn.query('SELECT skins.collection_key,skin_conditions.condition_id,skins.rarity,MIN(skin_conditions.price) as min,AVG(skin_conditions.price) as avg FROM skins JOIN skin_conditions ON skins.id=skin_conditions.skin_id GROUP BY collection_key,condition_id,rarity ORDER BY collection_key,condition_id,rarity');
+            return req;
+        } catch(e) {
+            console.error(`failed to getUpgrade data from database`);
+            console.error(e);
+            return [];
+        } finally{
+            if(conn) conn.release();
+        }
+    }
+
 }
 
 function dateDiffInDays(a,b) {

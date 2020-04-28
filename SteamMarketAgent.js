@@ -27,7 +27,7 @@ class SteamMarketAgent {
   }
 
   async test() {
-    await this.dbHandler.checkedCollectionRarityRecently('set_safehouse', 2);
+    console.log(await this.getAllUpgradeProfits());
     console.log('test finished');
   }
 
@@ -64,6 +64,7 @@ class SteamMarketAgent {
         const coll = await this.getCollectionMetadata(collection[0]);
         collections.push(...coll);
         console.log('got collection');
+        ++counter;
       }
 
       return collections;
@@ -156,6 +157,29 @@ class SteamMarketAgent {
         weaponData.condition = text.substring(indexOpeningBracket + 2, text.length -1);
 
         return weaponData;
+    }
+
+    async getAllUpgradeProfits() {
+      const weaponData = await this.dbHandler.getAllRawUpgradeData();
+
+      const profits = [];
+      for (let i = 0; i < weaponData.length- 2;++i) {
+        const currentEntry = weaponData[i];
+        const nextEntry = weaponData[i+1]
+
+        // check if next entry is same condition and rarity + 1
+        if (currentEntry.collection !== nextEntry.collection || currentEntry.condition_id !== nextEntry.condition_id || currentEntry.rarity!==nextEntry.rarity-1) {
+          console.log('blub');
+          continue;
+        }
+
+        const profit = nextEntry.avg - (currentEntry.min * 10);
+        const profitRound = Math.round(profit * 100) / 100;
+
+        profits.push(`collection: ${currentEntry.collection_key} rarity: ${Rarity[currentEntry.rarity]} condition: ${Condition[currentEntry.condition_id]} ~price: ${currentEntry.price} upgrade avg profit: ${profitRound}`);
+      }
+
+      return profits;
     }
 }
 
