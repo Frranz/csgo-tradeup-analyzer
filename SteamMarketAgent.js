@@ -169,7 +169,6 @@ class SteamMarketAgent {
 
         // check if next entry is same condition and rarity + 1
         if (currentEntry.collection !== nextEntry.collection || currentEntry.condition_id !== nextEntry.condition_id || currentEntry.rarity!==nextEntry.rarity-1) {
-          console.log('blub');
           continue;
         }
 
