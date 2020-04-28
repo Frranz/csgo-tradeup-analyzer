@@ -4,7 +4,7 @@ const DbHandler = require('./db/DatabaseHandler');
 const MarketAgent = require('./SteamMarketAgent');
 
 const app = express();
-const PORT = 3003;
+const PORT = 2983;
 const EXEC_MODE='PROD';
 
 const dbHandler = new DbHandler(db);
